@@ -3,7 +3,7 @@
 ## 目录
 ### 基础知识
 * [寻址方式](https://github.com/mixpi/JourneyOfASM/blob/main/寻址方式.md)
-* [编译相关]()
+* [编译相关](https://github.com/mixpi/JourneyOfASM/blob/main/编译相关.md)
 ### Linux
 * 代码框架
 * 退出程序
