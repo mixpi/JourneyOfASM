@@ -15,3 +15,10 @@
 # _start：表示标签的开始位置，
 _start:
     # 此处编写汇编代码
+
+
+
+# 将functionname标记开始处当作函数使用
+.type functionname, @function
+funcitonname:
+    # funciton code
