@@ -52,3 +52,67 @@
 _start:
     ### 程序初始化 ###
     # 保存栈指针
+    movl %esp, %ebp
+
+    # 在栈上为文件描述符分配空间
+    subl $ST_SIZE_RESERVE, %esp
+
+    open_files:
+    open_id_in:
+        ### 打开输入文件 ###
+        # 打开系统调用
+        movl $SYS_OPEN, %eax
+        # 将输入文件名放入%ebx
+        movl ST_ARGV_1(%ebp), %ebx  
+        # 只读标志
+        movl $O_RDONLY, %ecx
+        movl $0666, %edx
+        int $LINUX_SYSCALL
+    
+    store_fd_in:
+        ### 保存给定的文件描述符,描述符保存在%eax中
+        movl %eax, ST_FD_IN(%ebp)
+    
+    open_fd_out:
+        ### 打开输出文件 ###
+        # 打开文件
+        movl $SYS_OPEN, %eax
+        # 将输出文件名放入%ebx
+        movl ST_ARGV_2(%ebp), %ebx
+        # 写入文件标志
+        movl $O_CREAT_WRONLY_TRUNC, %ecx
+        # 新文件模式
+        movl $0666, %edx
+        int $LINUX_SYSCALL
+    
+    store_fd_out:
+        movl %eax, ST_FD_OUT(%ebp)
+
+    read_loop_begin:
+        ### 主循环开始 ###
+        ### 从输入文件中读取一个数据块 ###
+        movl $SYS_READ, %eax
+        # 获取输入文件描述符
+        movl ST_FD_IN(%ebp), %ebx
+        # 放置读取数据的存储位置
+        movl $BUFFER_DATA, %ecx
+        # 缓冲区大小
+        movl $BUFFER_SIZE, %edx
+        # 读取缓冲区大小返回到%eax中
+        int $LINUX_SYSCALL
+
+        ### 如达到文件结束处就退出 ###
+        # 检查文件结束标记
+        cmpl $END_OF_FILE, %eax
+        # 如果发现文件结束符或出现错误，就跳转到程序结束处
+        jle end_loop
+    
+    continue_read_loop:
+        ### 将字符块内容转换成大写形式 ###
+        pushl $BUFFER_DATA # 缓冲区位置
+        pushl %eax          # 缓冲区大小
+        call convert_to_upper
+        popl %eax   # 重新获取大小
+        addl $4, %esp       # 恢复%esp
+        
+
