@@ -98,7 +98,7 @@ _start:
         movl $BUFFER_DATA, %ecx
         # 缓冲区大小
         movl $BUFFER_SIZE, %edx
-        # 读取缓冲区大小返回到%eax中
+        # 读取缓冲区,大小返回到%eax中
         int $LINUX_SYSCALL
 
         ### 如达到文件结束处就退出 ###
@@ -114,5 +114,98 @@ _start:
         call convert_to_upper
         popl %eax   # 重新获取大小
         addl $4, %esp       # 恢复%esp
+
+        ### 将字符块写入输出文件 ###
+        # 缓冲区大小
+        movl %eax, %edx
+        movl $SYS_WRITE, %ebx
+        # 要使用的文件
+        movl ST_FD_OUT(%ebp), %ebx
+        # 缓冲区位置
+        movl $BUFFER_DATA, %ecx
+        int $LINUX_SYSCALL
+
+        ### 循环继续 ###
+        jmp read_loop_begin
+    
+    end_loop:
+        ### 关闭文件 ###
+        movl $SYS_CLOSE, %eax
+        movl ST_FD_OUT(%ebp), %ebx
+        int $LINUX_SYSCALL
+
+        movl $SYS_CLOSE, %eax
+        movl ST_FD_IN(%ebp), %ebx
+        int $LINUX_SYSCALL
+
+
+        ### 退出 ###
+        movl $SYS_EXIT, %eax
+        movl $0, %ebx
+        int $LINUX_SYSCALL
+
+
+# 目的： 这个函数实际上将字符块内容转换为大写形式
+#
+# 输入: 第一个参数是要转换的内存块的位置，第二个参数是缓冲区的长度
+#
+# 输出: 这个函数以大写字符块覆盖当前缓冲区
+#
+# 变量：
+#   %eax-缓冲区起始地址
+#   %ebx-缓冲区长度
+#   %edi-当前缓冲区偏移量
+#   %cl-当前正在检测的字节
+
+### 常数 ###
+# 搜索的下边界
+.equ LOWERCASE_A, 'a'
+# 搜索的上边界
+.equ LOWERCASE_Z, 'z'
+# 大小写转换
+.equ UPPER_CONVERSION, 'A'-'a'
+
+
+### 栈相关信息 ###
+.equ ST_BUFFER_LEN, 8 # 缓冲区长度
+.equ ST_BUFFER, 12    # 实际缓冲区
+
+convert_to_upper:
+    pushl %ebp
+    movl %esp, %ebp
+
+    ### 设置变量 ###
+    movl ST_BUFFER(%ebp), %eax
+    movl ST_BUFFER_LEN(%ebp), %ebx
+    movl $0, %edi
+
+    # 如果给定的缓冲区长度为0即离开
+    cmpl $0, %ebx
+    je end_convert_loop
+
+    convert_loop:
+        # 获取当前字节
+        movb (%eax,%edi,1), %cl
+
+        # 除非该字节在'a'和'z'之间，否则读取下一字节
+        cmpb $LOWERCASE_A, %cl
+        jl next_byte
+        cmpb $LOWERCASE_Z, %cl
+        jg next_byte
+
+        # 否则将字节转换为大写字母
+        addb $UPPER_CONVERSION, %cl
+        # 并存回原处
+        movb %cl, (%eax,%edi,1)
+
+    next_byte:
+        incl %edi   # 下一字节
+        cmpl %edi, %ebx # 继续执行程序，直到文件结束
+        jne convert_loop
+    
+    end_convert_loop:
+        movl %ebp, %esp
+        popl %ebp
+        ret
         
 
