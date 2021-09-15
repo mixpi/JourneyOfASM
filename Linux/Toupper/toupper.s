@@ -58,7 +58,7 @@ _start:
     subl $ST_SIZE_RESERVE, %esp
 
     open_files:
-    open_id_in:
+    open_fd_in:
         ### 打开输入文件 ###
         # 打开系统调用
         movl $SYS_OPEN, %eax
@@ -118,7 +118,7 @@ _start:
         ### 将字符块写入输出文件 ###
         # 缓冲区大小
         movl %eax, %edx
-        movl $SYS_WRITE, %ebx
+        movl $SYS_WRITE, %eax
         # 要使用的文件
         movl ST_FD_OUT(%ebp), %ebx
         # 缓冲区位置
@@ -157,6 +157,7 @@ _start:
 #   %edi-当前缓冲区偏移量
 #   %cl-当前正在检测的字节
 
+
 ### 常数 ###
 # 搜索的下边界
 .equ LOWERCASE_A, 'a'
@@ -169,7 +170,7 @@ _start:
 ### 栈相关信息 ###
 .equ ST_BUFFER_LEN, 8 # 缓冲区长度
 .equ ST_BUFFER, 12    # 实际缓冲区
-
+.type convert_to_upper, @function
 convert_to_upper:
     pushl %ebp
     movl %esp, %ebp
